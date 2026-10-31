@@ -75,3 +75,17 @@ jobs:
         with:
           name: RetroPod-ipa
           path: RetroPod.ipa
+
+      - name: Publish IPA to release and ipa branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep MARKETING_VERSION project.yml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          TAG="v${VER}-build${{ github.run_number }}"
+          gh release create "$TAG" RetroPod.ipa --title "RetroPod $VER（构建 ${{ github.run_number }}）" --notes "未签名 ipa，自签后安装。" --target "${{ github.sha }}" || echo "release failed"
+          mkdir -p _ipa && cp RetroPod.ipa _ipa/ && cd _ipa
+          git init -q -b ipa
+          git config user.name "github-actions[bot]"
+          git config user.email "41898181+github-actions[bot]@users.noreply.github.com"
+          git add RetroPod.ipa && git commit -qm "$TAG"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" ipa:ipa
